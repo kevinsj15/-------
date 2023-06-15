@@ -41,6 +41,7 @@
         remove,
         onChildRemoved,
         get,
+        onChildChanged
       } from "https://cdnjs.cloudflare.com/ajax/libs/firebase/9.22.2/firebase-database.js";
 
       // Your web app's Firebase configuration
@@ -127,6 +128,31 @@
       onChildAdded(dbRef, function (data) {
         const msg = data.val();
         const key = data.key;
+        let h = "<div id='" + key + "'>"; // 一意のIDを持つdiv要素を作成
+        if (msg.uname === getCookie("uname")) {
+          h += "<p class='right' data-timestamp='" + msg.timestamp + "'>"; // 自分のメッセージ
+        } else {
+          h += "<p class='left' data-timestamp='" + msg.timestamp + "'>"; // 他人のメッセージ
+        }
+        h += msg.uname;
+        h += "<br>";
+        h += msg.text;
+        h += "<button class='delete' data-key='" + key + "'>削除</button>"; // 削除ボタンを追加
+        h +=
+          "<button class='like' data-key='" +
+          key +
+          "'>いいね（" +
+          msg.likes +
+          "）</button>"; // いいねボタンを追加
+        h += "</p>";
+        h += "</div>";
+        $("#output").append(h); // #output の最後に追加
+      });
+
+      //データ変更機能の実装
+      onChildChanged(dbRef, function (data) {
+        const msg = data.val();
+        const key = data.key;
         let h = "";
         if (msg.uname === getCookie("uname")) {
           h += "<p class='right' data-timestamp='" + msg.timestamp + "'>"; // 自分のメッセージ
@@ -144,7 +170,7 @@
           msg.likes +
           "）</button>"; // いいねボタンを追加
         h += "</p>";
-        $("#output").append(h); // #output の最後に追加
+        $("#" + key).replaceWith(h); // 対応するメッセージを新しいものに置き換える
       });
 
       //削除ボタンがクリックされたときの処理
@@ -179,27 +205,29 @@
       // エクスポートボタンがクリックされたときの処理
       document.getElementById("export").addEventListener("click", exportToCsv);
 
-//いいねボタンがクリックされたときの処理
-$(document).on("click", ".like", function() {
-  const key = $(this).data("key"); // ボタンのdata-key属性からキーを取得
-  const msgRef = ref(db, "chat/" + key); // いいねを増やすメッセージの参照を取得
+      //いいねボタンがクリックされたときの処理
+      $(document).on("click", ".like", function () {
+        const key = $(this).data("key"); // ボタンのdata-key属性からキーを取得
+        const msgRef = ref(db, "chat/" + key); // いいねを増やすメッセージの参照を取得
 
-  get(msgRef).then((snapshot) => {
-    if (snapshot.exists()) {
-      let msg = snapshot.val();
-      if (msg.likes) {
-        msg.likes++;
-      } else {
-        msg.likes = 1;
-      }
-      set(msgRef, msg);
-    } else {
-      console.log("No data available");
-    }
-  }).catch((error) => {
-    console.error(error);
-  });
-});
+        get(msgRef)
+          .then((snapshot) => {
+            if (snapshot.exists()) {
+              let msg = snapshot.val();
+              if (msg.likes) {
+                msg.likes++;
+              } else {
+                msg.likes = 1;
+              }
+              set(msgRef, msg);
+            } else {
+              console.log("No data available");
+            }
+          })
+          .catch((error) => {
+            console.error(error);
+          });
+      });
     </script>
   </body>
 </html>
