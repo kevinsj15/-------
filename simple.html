@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <title>Chatアプリ</title>
+    <!-- CSSファイルをリンクする -->
+    <link rel="stylesheet" type="text/css" href="style.css" />
+  </head>
+
+  <body>
+    <!-- コンテンツ表示画面 -->
+    <div class="input-area">
+      <div>名前: <input type="text" id="uname" /></div>
+      <div>
+        <textarea name="" id="text" cols="30" rows="10"></textarea>
+        <button id="send">送信</button>
+        <!-- ここにエクスポートボタンを追加 -->
+        <button id="export">エクスポート</button>
+      </div>
+    </div>
+
+    <div id="output" class="message-area"></div>
+    <!--/ コンテンツ表示画面 -->
+
+    <!-- JQuery -->
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+    <!-- JQuery -->
+
+    <!--** 以下Firebase **-->
+    <script type="module">
+      // Import the functions you need from the SDKs you need
+      import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-app.js";
+      // TODO: Add SDKs for Firebase products that you want to use
+      // https://firebase.google.com/docs/web/setup#available-libraries
+      import {
+        getDatabase,
+        ref,
+        push,
+        set,
+        onChildAdded,
+        remove,
+        onChildRemoved,
+        get,
+      } from "https://cdnjs.cloudflare.com/ajax/libs/firebase/9.22.2/firebase-database.js";
+
+      // Your web app's Firebase configuration
+      const firebaseConfig = {
+        apiKey: "AIzaSyCPpdIsa6xMuQZ4leTouJ0IlqLmHBwqfGM",
+        authDomain: "fir-demo-ba430.firebaseapp.com",
+        projectId: "fir-demo-ba430",
+        storageBucket: "fir-demo-ba430.appspot.com",
+        messagingSenderId: "893920093107",
+        appId: "1:893920093107:web:99cecfa7f484dd7612e1c6",
+      };
+
+      // Initialize Firebase
+      const app = initializeApp(firebaseConfig);
+
+      //Realtime Databaseの初期設定
+      const db = getDatabase(app); // RealtimeDBに接続
+      const dbRef = ref(db, "chat"); // RealtimeDB内の"chat"を使う
+
+      // 名前をCookieに保存する関数
+      function setCookie(cname, cvalue, exdays) {
+        const d = new Date();
+        d.setTime(d.getTime() + exdays * 24 * 60 * 60 * 1000);
+        const expires = "expires=" + d.toUTCString();
+        document.cookie = cname + "=" + cvalue + ";" + expires + ";path=/";
+      }
+
+      // Cookieから名前を取得する関数
+      function getCookie(cname) {
+        const name = cname + "=";
+        const decodedCookie = decodeURIComponent(document.cookie);
+        const ca = decodedCookie.split(";");
+        for (let i = 0; i < ca.length; i++) {
+          let c = ca[i];
+          while (c.charAt(0) == " ") {
+            c = c.substring(1);
+          }
+          if (c.indexOf(name) == 0) {
+            return c.substring(name.length, c.length);
+          }
+        }
+        return "";
+      }
+
+      // ページ読み込み時に、Cookieから名前を取得し、名前欄に設定
+      $(document).ready(function () {
+        const uname = getCookie("uname");
+        if (uname != "") {
+          $("#uname").val(uname);
+        }
+      });
+
+      //データ送信処理
+      $("#send").on("click", function () {
+        const now = new Date();
+        const timestamp =
+          now.getFullYear() +
+          "年" +
+          (now.getMonth() + 1) +
+          "月" +
+          now.getDate() +
+          "日 " +
+          now.getHours() +
+          "時" +
+          now.getMinutes() +
+          "分"; // 送信日時を取得し、指定した形式に変換
+        const uname = $("#uname").val();
+        const text = $("#text").val();
+
+        // 名前をCookieに保存
+        setCookie("uname", uname, 30);
+
+        const msg = {
+          uname: uname,
+          text: text,
+          timestamp: timestamp,
+          likes: 0, //いいねの数を初期化
+        };
+        const newPostRef = push(dbRef); // pushできる状態にする
+        set(newPostRef, msg); // DBに値を送信
+      });
+
+      //データ受信機能の実装
+      onChildAdded(dbRef, function (data) {
+        const msg = data.val();
+        const key = data.key;
+        let h = "";
+        if (msg.uname === getCookie("uname")) {
+          h += "<p class='right' data-timestamp='" + msg.timestamp + "'>"; // 自分のメッセージ
+        } else {
+          h += "<p class='left' data-timestamp='" + msg.timestamp + "'>"; // 他人のメッセージ
+        }
+        h += msg.uname;
+        h += "<br>";
+        h += msg.text;
+        h += "<button class='delete' data-key='" + key + "'>削除</button>"; // 削除ボタンを追加
+        h +=
+          "<button class='like' data-key='" +
+          key +
+          "'>いいね（" +
+          msg.likes +
+          "）</button>"; // いいねボタンを追加
+        h += "</p>";
+        $("#output").append(h); // #output の最後に追加
+      });
+
+      //削除ボタンがクリックされたときの処理
+      $(document).on("click", ".delete", function () {
+        const key = $(this).data("key"); // ボタンのdata-key属性からキーを取得
+        const msgRef = ref(db, "chat/" + key); // 削除するメッセージの参照を取得
+        remove(msgRef); // メッセージを削除
+        location.reload(); // ページをリロード
+      });
+
+      // Firebaseからデータを取得し、CSV形式に変換する関数
+      async function exportToCsv() {
+        let csvContent = "発言者,日付,コメント内容\n"; // CSVのヘッダー
+
+        // Firebaseからデータを取得
+        const snapshot = await get(dbRef);
+        snapshot.forEach((childSnapshot) => {
+          const msg = childSnapshot.val();
+          const row = [msg.uname, msg.timestamp, msg.text];
+          csvContent += row.join(",") + "\n"; // CSV形式に変換
+        });
+
+        // CSVデータをダウンロードするためのリンクを作成
+        const link = document.createElement("a");
+        const bom = new Uint8Array([0xef, 0xbb, 0xbf]); // BOMの作成
+        const blob = new Blob([bom, csvContent], { type: "text/csv" });
+        link.href = URL.createObjectURL(blob);
+        link.download = "chat_export.csv";
+        link.click();
+      }
+
+      // エクスポートボタンがクリックされたときの処理
+      document.getElementById("export").addEventListener("click", exportToCsv);
+
+//いいねボタンがクリックされたときの処理
+$(document).on("click", ".like", function() {
+  const key = $(this).data("key"); // ボタンのdata-key属性からキーを取得
+  const msgRef = ref(db, "chat/" + key); // いいねを増やすメッセージの参照を取得
+
+  get(msgRef).then((snapshot) => {
+    if (snapshot.exists()) {
+      let msg = snapshot.val();
+      if (msg.likes) {
+        msg.likes++;
+      } else {
+        msg.likes = 1;
+      }
+      set(msgRef, msg);
+    } else {
+      console.log("No data available");
+    }
+  }).catch((error) => {
+    console.error(error);
+  });
+});
+    </script>
+  </body>
+</html>
