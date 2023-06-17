@@ -4,31 +4,47 @@
     width: 100%;
     margin: 0 auto;
     overflow-y: auto;
-    border: 1px solid lightgray;
+    /* border: 1px solid lightgray; */
     border-radius: 5px;
   }
   
   p.right {
     text-align: right;
-    background-color: darkblue;
-    color: white;
+    background-color: rgb(62, 201, 62);
+    color: rgb(0, 0, 0);
     border-radius: 10px;
     padding: 10px;
+    opacity: 80%;
   }
   
   p.left {
     text-align: left;
-    background-color: lightblue;
+    background-color: rgb(173, 230, 176);
     border-radius: 10px;
     padding: 10px;
+    opacity: 80%;
   }
-
-
-.input-area {
+  
+  .input-area {
     position: fixed;
     bottom: 0;
     left: 50%;
     transform: translateX(-50%);
+    background-color: #51e66a; /* ポップなピンク色に変更 */
+    padding: 10px;
+    border-radius: 10px;
+    max-width: 550px;
+    width: 100%;
+    margin: auto;
+    overflow-y: auto;
+    opacity: 80%;
+  }
+  
+  /* 入力欄とボタンのスタイルを統一し、高さを揃える */
+  #uname, #text, #send, #export {
+    height: 40px;
+    border-radius: 5px;
+    margin: 5px;
   }
   
   /* マウスホバー時に送信日時を表示 */
@@ -40,4 +56,55 @@
     padding: 5px;
     position: absolute;
     z-index: 1;
+  }
+
+  body {
+	width: 100%;
+	height: 100vh;
+	background:linear-gradient(45deg, #3bade3,#9844b7,#44ea76);/*グラデーションを定義*/
+	background-size: 200% 200%;/*サイズを大きくひきのばす*/
+	animation: bggradient 20s ease infinite;
+}
+
+@keyframes bggradient{
+	0% {
+		background-position: 0% 50%;
+	}
+	50% {
+		background-position: 100% 50%;
+	}
+	100% {
+		background-position: 0% 50%;
+	}
+}
+
+#send, #export {
+    /* その他のスタイル */
+    transition: background-color 0.3s ease; /* 追加: 背景色の変化にアニメーションをつける */
+}
+
+#send:hover, #export:hover {
+    background-color: #ccc; /* 追加: マウスホバー時の背景色 */
+}
+
+
+::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+   
+  ::-webkit-scrollbar-thumb {
+    background: #80ffaa;
+    border-radius: 5px;
+  }
+  
+  .comment {
+    position: absolute;
+    white-space: nowrap;
+    animation: flow linear 5s infinite;
+  }
+  
+  @keyframes flow {
+    0% { transform: translateX(100%); }
+    100% { transform: translateX(-100%); }
   }
